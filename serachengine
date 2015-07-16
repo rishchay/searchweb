@@ -1,0 +1,209 @@
+import requests
+
+from Tkinter import *
+from bs4 import BeautifulSoup
+
+
+visited = {'wikipedia': 0, 'khan': 0, 'tech': 0, 'coursera': 0, 'webopedia': 0, 'geeksforgeeks':0,'topcoder': 0,
+           'codechef': 0, 'Quora': 0
+}
+
+
+dictxy=[]
+
+count = 0
+table = []
+graph = []
+
+
+def check(word):
+
+    global table
+    for words in table:
+        if words[0] == word:
+            return table.index(words)
+
+    return -1
+
+
+def indexing(material, url):
+    # print 'hello'
+    global table
+
+    #print material[0]
+
+    for word in material:
+        if check(word) >= 0:
+
+            b = table[check(word)]
+            #print b
+            if b[1][0][0]==url:
+
+                b[1][0][1]+=1
+
+            else:
+                b[1].append([url,1])
+        else:
+            #  print 'else'
+            table.append([word, []])
+            #print table
+            a = table[-1]
+            a[1].append([url, 1])
+
+
+
+def crawl(url, text):
+    graph.append([url, []])
+    print url
+    source_code = requests.get(url)
+    plain_text = source_code.text
+    soup = BeautifulSoup(plain_text)
+    global visited
+    visited[text] = 1
+    matter = plain_text.split()
+    start = matter.index('Algorithm')
+    end = matter.index('coding')
+
+    info = matter[start:end]
+
+    indexing(info, url)
+    rear = graph[-1]
+    for link in soup.find_all('a'):
+        href = link.get('href')
+
+        title = link.string
+
+        check = str(title).split()
+        for text in check:
+            if text in visited:
+                rear[1].append(href)
+
+                if visited[text] == 0:
+                    crawl(href, text)
+
+
+def pagerank():
+    global graph
+    d = 0.8
+    previous = []
+
+    numpages = len(graph)
+    #print numpages
+    global current
+    global dictxy
+    current = []
+    f = 1.0 / numpages
+
+    for i in range(0, numpages):
+        previous.append([graph[i][0], f])
+        current.append([graph[i][0], 0.0])
+        dictxy.append([0.0,graph[i][0]])
+
+
+     #print previous, current
+
+
+    t = 10
+
+    for temp in range(0, t):
+
+        for i in range(0, numpages):
+            x = graph[i][0]
+            z = (1 - d) / numpages
+
+            for j in range(0, numpages):
+
+                if x in graph[j][1]:
+
+                    for k in range(0, numpages):
+                        if previous[k][0] == graph[j][0]:
+                            z += previous[k][1]
+
+            current[i][1] = z
+
+        for i in range(0, numpages):
+            previous[i][1] = current[i][1]
+
+def sortxy():
+    global dictxy
+    dictxy.sort(reverse=True)
+    #sorted(dictxy, key=lambda result: result[0])   # sort by frequency,popularity
+
+    #print dictxy
+    for dic in dictxy:
+        if dic[0]>0:
+            print dic[1]
+            print
+
+
+
+def funcxy(queries):
+    words=queries.split()
+    for query in words:
+        global dictxy
+        if check(query)==-1:
+            print 'no result found'
+
+        else:
+            b=table[check(query)]
+
+            l=len(b[1])
+            #print l
+            for i in range(0,l):
+                y=b[1][i][1]
+                #print y
+                for j in current:
+                    if j[0]==b[1][i][0]:
+                        x=j[1]
+                        #print x
+
+                        for dic in dictxy:
+                            if dic[1]==b[1][i][0]:
+                                dic[0]+=x*y
+
+            sortxy()
+
+
+
+
+crawl("http://wikipediaalgo.blogspot.in/", 'wikipedia')
+#print table
+pagerank()
+#print current
+
+#query=raw_input("Search: ")
+
+#print dictxy
+
+
+master = Tk()
+
+e = Entry(master)
+e.pack()
+
+#e.focus_set()
+
+def callback():
+    funcxy(e.get())
+
+b = Button(master, text="search", width=50, command=callback)
+b.pack()
+
+master.geometry('450x450+500+300')
+master.title("Search Engine")
+mainloop()
+e = Entry(master, width=500)
+e.pack()
+
+
+
+
+
+
+
+
+
+
+
+
+
